@@ -1,0 +1,121 @@
+Revision history for File-Raw
+
+0.19    2026-10-17
+        - Fix: the build failed on perl 5.12.
+        - Fix: t/022 did not parse on perl 5.8.
+
+0.18    2026-09-08
+        - Fix each_line: close the file when the plugin or the callback dies.
+
+0.17    2026-09-07
+        - chunk_iter: pull reads, the counterpart to each_line's push.
+        - next($buffer) reads into the caller's scalar, as core read does.
+        - include/file_chunk.h: the same reads from C, without a copy.
+
+0.16    2026-08-31
+        - Report a real dev and ino on Windows, which stat() leaves at 0.
+
+0.15    2026-08-24
+        - Windows/MSVC: export the plugin registry and dispatch API from
+          Raw.dll.
+
+0.14    2026-07-07
+        - Fix Perl 5.12.x build failure: add op_contextualize compat macro
+          in include/file_compat.h
+
+0.13    2026-05-17
+        - Windows: file_plugin_dispatch_stream (the each_line entry)
+          now opens with O_BINARY. 
+
+0.12    2026-05-07
+        - Windows: emit a MinGW import library (libRaw.dll.a) alongside
+          Raw.dll at build time and publish its location through
+          ExtUtils::Depends's set_libs. Downstream plugin XS dists
+          (Base64, Gzip, Hash, Separated, ...) can now drop their
+          hand-rolled MSWin32 Makefile.PL branches that hunted for
+          Raw.dll on disk. ExtUtils::Depends should now provide the right
+          -L/-lRaw automatically.
+
+0.11    2026-05-05
+        - Win32 portability fix: the FilePlugin struct fields read/write/
+          record/stream have been renamed to read_fn/write_fn/record_fn/stream_fn.
+
+0.10    2026-05-03
+        - BREAKING: the global read/write hook system is gone. Removed
+          register_read_hook, register_write_hook, clear_hooks,
+          has_hooks, register_line_callback, list_line_callbacks and the
+          whole include/file_hooks*.h C API (file_register_hook_c,
+          file_run_hooks, FileHookContext, etc.). Downstream modules that
+          registered hooks must port to the new plugin API.
+        - Replacement: a named-plugin system. Callers opt in per call via
+          a trailing key/value tail:  File::Raw::slurp($p, plugin => 'csv', sep => ';');
+        - register_plugin / unregister_plugin / list_plugins (Perl) and
+          file_register_plugin / file_unregister_plugin / file_lookup_plugin
+          plus dispatch helpers in include/file_plugin.h (C). Plugins
+          implement any subset of read / write / record / stream phases.
+        - Predicate registry survives, repackaged as a built-in 'predicate'
+          plugin. New names: register_predicate / list_predicates. The
+          legacy 2-arg sugar grep_lines($p, 'is_blank') keeps working.
+        - `plugin =>` accepts an arrayref of plugin names in addition to a scalar string. 
+	  READ unwraps left to right; WRITE applies right to left:
+        - Change to use ExtUtils::Depends to help linking header.
+
+0.09    2026-04-25
+        - Fix build on Solaris/SunOS: drop GNU-only -Wl,--export-dynamic
+          and -Wl,-soname flags, native ld already exports by default
+        - Fix build on Windows/Cygwin: t/xs/file_api_test no longer
+          tries to link against Raw.dll (no import library shipped);
+          extract hook impl into include/file_hooks_impl.h, included
+          privately by the test extension on those platforms
+        - Skip cross-DLL hook subtests in t/012 on Windows/Cygwin where
+          each DLL has its own hook state
+        - Fix Perl_custom_op_register fallback in xop_compat.h for
+          pre-5.14 Perls
+
+0.08	2026-04-09
+        - Fix more compilation issues on Cygwin: replace static XS() with XS_INTERNAL()
+   	in file_api_test.c
+
+0.07    2026-04-08
+        - Add file_join, file_mkpath, file_rm_rf to import mechanism
+        - file_join: platform-aware path joining (uses \ on Windows, / on POSIX)
+        - file_mkpath: recursive directory creation in C
+        - file_rm_rf: recursive directory removal in C
+        - Support selective import of variadic functions
+          (use File::Raw qw(join mkpath rm_rf))
+        - Fix variadic function import to install into caller's package
+        - Fix 1-arg and 2-arg custom op call checkers to enforce scalar
+          context on args (fixes file_slurp/file_spew with function call
+          return values as path)
+
+0.06    2026-04-08
+        - Fix compilation on Cygwin: replace static XS() with XS_INTERNAL()
+          to avoid conflict with dllexport requiring external linkage
+        - Fix unused variable warning in xs_map_lines
+	- Document the XS API
+
+0.05    2026-04-07
+        - Fix is_executable tests on Win32: use .bat extension instead of
+          chmod +x on .sh files, since Windows determines executability by
+          file extension (.exe, .bat, .cmd, .com)
+
+0.04    2026-04-06
+        - Fix custom op construction to use OP_NULL then convert to OP_CUSTOM,
+          avoiding newUNOP/newBINOP assertion failures on -DDEBUGGING Perls
+        - Fix Perl_xs_boot_epilog for Perl < 5.22 (use XSRETURN_YES fallback)
+        - Replace struct stat with Stat_t for Windows MULTIPLICITY builds
+        - Add dTHX to helper functions for PERL_NO_GET_CONTEXT compatibility
+        - Fix 3-arg open() calls for Windows (PerlLIO_open only takes 2 args)
+
+0.03    2026-04-05
+        - Fix xop_class registration for custom ops to prevent assertion
+          failures on debug builds of Perl 5.14-5.21 (CPAN Testers failures)
+        - Fix XOP compatibility macros for pre-5.14 Perl versions
+	- Switch to Dynaloader so we can link back to 5.10
+
+0.02    2025-05-23
+        - Initial CPAN release
+
+0.01    Date/time
+        First version, released on an unsuspecting world.
+
